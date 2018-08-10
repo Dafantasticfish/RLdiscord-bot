@@ -74,10 +74,13 @@ if __name__ == '__main__':
         'Bot_loadout': ['Default', 'Random']
     }
 
-    rlsclient = rs.RLS_Client("NB9V509PT0RVN5LQGIPZVBQM6ISMPTRD")
-
-    # get token.txt
+    # get discord token
     with open('token.txt') as token:
         token = token.readline()
+
+    with open('rlstoken.txt') as rlstoken:
+        rlstoken = rlstoken.readline()
+
+    rlsclient = rs.RLS_Client(rlstoken.strip())
 
     bot.loop.run_until_complete(bot.run(token.strip()))
