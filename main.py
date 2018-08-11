@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import rocket_snake as rs
 from rocket_snake import constants as const
+from pyson import Pyson
 
 import random
 
@@ -15,19 +16,30 @@ async def get_platform(platform):
     elif platform.lower() == 'xbox':
         return const.XBOX1
 
+async def get_tier(ptier):
+    tierlist = await rlsclient.get_tiers()
+    tier = tierlist[ptier]
+
+    return tier.name
 
 @bot.command(name = 'stats')
-async def get_stats(ctx, uid, platform):
+async def get_stats(ctx, uid, platform = const.STEAM):
 
-    platform = await get_platform(platform)
+    if platform != const.STEAM:
+        platform = await get_platform(platform)
 
     player = await rlsclient.get_player(uid, platform)
     avatar = player.avatar_url
+
+    if avatar is None:
+        avatar = "http://cdn.edgecast.steamstatic.com/steamcommunity/public/images/avatars/78/" \
+                 "781cd87d570a7df1e51994d39dc41b09f1a8cf3a_full.jpg"
+
     stats = player.stats
 
     embed = discord.Embed(
         title = f'{player.display_name}\'s stats',
-        colour = discord.Colour.blue(),
+        colour = discord.Colour.blue()
     )
 
     embed.set_footer(text = 'Powered by www.rocketleaguestats.com')
@@ -42,37 +54,57 @@ async def get_stats(ctx, uid, platform):
 
     await ctx.send(embed = embed)
 
+@bot.command(name = 'rank')
+async def rank(ctx, uid, platform = const.STEAM, season = 'all', playlist = 'all'):
+    if platform != const.STEAM:
+        platform = await get_platform(platform)
+
+    player = await rlsclient.get_player(uid, platform)
+    ranked = player.ranked_seasons
+    plist = await rlsclient.get_playlists()
+    tierlist = await rlsclient.get_tiers()
+    pname = ''
+
+    embed = discord.Embed(
+        title = f'{player.display_name}\'s All Season\'s Stats',
+        colour = discord.Colour.blue()
+    )
+
+    if season == 'all' and playlist == 'all':
+        for season in ranked:
+            embed.add_field(name = f"Season:", value = f"{season}", inline = False)
+            for playlist in ranked[season]:
+                for id in plist:
+                    if id.id == int(playlist):
+                        pname = id.name
+                        break
+
+                tier = tierlist[ranked[season][playlist][3]]
+                if tier.name.lower() == 'unranked':
+                    continue
+
+                embed.add_field(name = pname, value = tier.name)
+    embed.set_footer(text = "Powered by Rocketleaguestats.com *disclaimer: RLS doesn't always"
+                            " store all season data.")
+    await ctx.send(embed = embed)
+
 @bot.command(name = 'mutate')
 async def mutate(ctx):
-    string = '```'
-    for key in mutators:
-        mutate = random.choice(mutators[key])
-        string += f'{key}: {mutate}\n'
-    string += '```'
-    await ctx.send(string)
+    embed = discord.Embed(
+        title = 'Randomized Mutators',
+        colour = discord.Colour.blue()
+    )
+    for key in mutators.data:
+        mutate = random.choice(mutators.data[key])
+        embed.add_field(name = key, value = mutate)
+    await ctx.send(embed = embed)
 
 @bot.command(name = 'fuck')
 async def fuck(ctx):
     await bot.close()
 
 if __name__ == '__main__':
-    mutators = {
-        'Match_length': ['5 Minutes', '10 Minutes', '20 Minutes', 'Unlimited'],
-        'Max_score': ['Unlimited', '1 Goal', '3 Goals', '5 Goals'],
-        'Game_speed': ['Default', 'Slo-Mo', 'Time Warp'],
-        'Ball_max_speed': ['Default', 'Slow', 'Fast', 'Super Fast'],
-        'Ball_type': ['Default', 'Cube', 'Puck', 'Basketball'],
-        'Ball_weight': ['Default', 'Light', 'Heavy', 'Super Light'],
-        'Ball_size': ['Default', 'Small', 'Large', 'Gigantic'],
-        'Ball_bounciness': ['Default', 'Low', 'High', 'Super High'],
-        'Boost_amount': ['Default', 'Unlimited', 'Recharge (Slow)', 'Recharge (Fast)', 'No Boost'],
-        'Boost_strength': ['1x', '1.5x', '2x', '10x'],
-        'Rumble': ['None', 'Default', 'Slow', 'Civilized', 'Destruction Derby', 'Spring Loaded'],
-        'Gravity': ['Default', 'Low', 'High', 'Super High'],
-        'Demolish': ['Default', 'Disabled', 'Friendly Fire', 'On Contact', 'On Contact (FF)'],
-        'Respawn_time': ['3 Seconds', '2 Seconds', '1 Second', 'Disable Goal Reset'],
-        'Bot_loadout': ['Default', 'Random']
-    }
+    mutators = Pyson('mutators')
 
     # get discord token
     with open('token.txt') as token:

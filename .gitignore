@@ -1,2 +1,3 @@
 *.txt
 .idea/*
+__pycache__/pyson.cpython-36.pyc
