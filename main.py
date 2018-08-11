@@ -84,6 +84,40 @@ async def rank(ctx, uid, platform = const.STEAM, season = 'all', playlist = 'all
                     continue
 
                 embed.add_field(name = pname, value = tier.name)
+    elif season != 'all' and playlist == 'all':
+        try:
+            tmp = int(season)
+        except:
+            await ctx.send(f"Sorry, Season {season} is not a real season.")
+            return
+        embed.add_field(name = f"Season:", value = f"{season}", inline = False)
+        for playlist in ranked[season]:
+            for id in plist:
+                if id.id == int(playlist):
+                    pname = id.name
+                    break
+
+            tier = tierlist[ranked[season][playlist][3]]
+            if tier.name.lower() == 'unranked':
+                continue
+
+            embed.add_field(name = pname, value = tier.name)
+    elif season != 'all' and playlist != 'all':
+        try:
+            tmp = int(season)
+            tmp = int(playlist)
+        except:
+            await ctx.send(f"Sorry, either your season or playlist is wrong.")
+            return
+        embed.add_field(name = f"Season:", value = f"{season}", inline = False)
+        for id in plist:
+            if id.id == int(playlist):
+                pname = id.name
+                break
+
+        tier = tierlist[ranked[season][playlist][3]]
+
+        embed.add_field(name = pname, value = tier.name)
     embed.set_footer(text = "Powered by Rocketleaguestats.com *disclaimer: RLS doesn't always"
                             " store all season data.")
     await ctx.send(embed = embed)
